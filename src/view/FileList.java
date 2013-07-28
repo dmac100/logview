@@ -4,13 +4,21 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.DisposeEvent;
+import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
@@ -26,11 +34,20 @@ public class FileList {
 	
 	private List<File> files = new ArrayList<File>();
 	private Set<File> modified = new HashSet<File>();
+	private Set<File> recentlyModified = new HashSet<File>();
+	
+	private Font normalFont;
+	private Font boldFont;
+	
+	private Map<File, Timer> modifiedTimers = new HashMap<File, Timer>();
 	
 	public FileList(Composite parent) {
 		table = new Table(parent, SWT.NONE);
 		
 		table.setHeaderVisible(true);
+		
+		normalFont = table.getFont();
+		boldFont = createBoldFont(table.getFont());
 		
 		final TableColumn column1 = new TableColumn(table, SWT.NONE, 0);
 		final TableColumn column2 = new TableColumn(table, SWT.NONE, 1);
@@ -89,8 +106,50 @@ public class FileList {
 				fileSelectedCallback.onCallback((File)selection[0].getData());
 			}
 		});
+		
+		table.addDisposeListener(new DisposeListener() {
+			public void widgetDisposed(DisposeEvent event) {
+				boldFont.dispose();
+			}
+		});
 	}
 	
+	private Font createBoldFont(Font font) {
+		FontData[] fontDatas = font.getFontData();
+		for(FontData fontData:fontDatas) {
+			fontData.setStyle(SWT.BOLD);
+		}
+		return new Font(Display.getCurrent(), fontDatas);
+	}
+
+	private void notifyModified(TableItem tableItem, final File file) {
+		Timer timer = modifiedTimers.get(file);
+	
+		if(timer == null) {
+			timer = new Timer();
+		} else {
+			timer.cancel();
+		}
+		
+		tableItem.setFont(boldFont);
+		
+		final Display display = Display.getCurrent();
+		timer.schedule(new TimerTask() {
+			public void run() {
+				display.asyncExec(new Runnable() {
+					public void run() {
+						recentlyModified.remove(file);
+						for(TableItem tableItem:table.getItems()) {
+							if(tableItem.getData().equals(file)) {
+								tableItem.setFont(normalFont);
+							}
+						}
+					}
+				});
+			}
+		}, 5000);
+	}
+
 	public void setFileSelectedCallback(Callback<File> callback) {
 		this.fileSelectedCallback = callback;
 	}
@@ -115,6 +174,9 @@ public class FileList {
 		if(modified.contains(file)) {
 			tableItem.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_RED));
 		}
+		if(recentlyModified.contains(file)) {
+			tableItem.setFont(boldFont);
+		}
 	}
 	
 	public void setModified(File file, boolean selected) {
@@ -123,10 +185,11 @@ public class FileList {
 				tableItem.setText(1, formatDate(file.lastModified()));
 				if(!selected) {
 					tableItem.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_RED));
+					modified.add(file);
+					notifyModified(tableItem, file);
 				}
 			}
 		}
-		modified.add(file);
 	}
 	
 	private static String formatDate(long date) {
@@ -138,15 +201,30 @@ public class FileList {
 		for(TableItem tableItem:table.getItems()) {
 			if(tableItem.getData().equals(file)) {
 				tableItem.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_BLACK));
+				tableItem.setFont(normalFont);
 			}
 		}
+		
 		modified.remove(file);
+		recentlyModified.remove(file);
+		
+		Timer timer = modifiedTimers.get(file);
+		if(timer != null) {
+			timer.cancel();
+			modifiedTimers.remove(file);
+		}
 	}
 	
 	public void clear() {
 		table.removeAll();
 		modified.clear();
+		recentlyModified.clear();
 		files.clear();
+		
+		for(Timer timer:modifiedTimers.values()) {
+			timer.cancel();
+		}
+		modifiedTimers.clear();
 	}
 
 	public Control getWidget() {
