@@ -9,8 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.input.Tailer;
-import org.apache.commons.io.input.TailerListenerAdapter;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
@@ -38,6 +36,9 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import tayler.Tailer;
+import tayler.TailerListenerAdapter;
 
 public class MainView {
 	private static final Logger log = LoggerFactory.getLogger(MainView.class);
