@@ -32,7 +32,6 @@ public class FileView {
 	private TreeModel activeModel = treeModel;
 	
 	private int verticalOffset = 0;
-	private int inSelection = 0;
 	private boolean tail = false;
 	
 	final int lineHeight = 17;
@@ -83,9 +82,7 @@ public class FileView {
 			public void widgetSelected(SelectionEvent event) {
 				int diff = verticalOffset - canvas.getVerticalBar().getSelection();
 			
-				inSelection++;
 				canvas.scroll(0, diff, 0, 0, canvas.getBounds().width, canvas.getBounds().height, true);
-				inSelection--;
 				
 				verticalOffset = canvas.getVerticalBar().getSelection();
 			}
@@ -99,9 +96,8 @@ public class FileView {
 				
 				gc.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
 				
-				int top = (inSelection == 0) ? canvas.getVerticalBar().getSelection() : verticalOffset;
+				int top = verticalOffset;
 				int bottom = verticalOffset + canvas.getClientArea().height;
-				int left = -canvas.getHorizontalBar().getSelection();
 				
 				Transform transform = new Transform(Display.getCurrent());
 				transform.translate(-canvas.getHorizontalBar().getSelection(), 0);
@@ -203,7 +199,6 @@ public class FileView {
 			activeModel = treeModel;
 		} else {
 			filteredModel = new FilteredTreeModel(treeModel, filter);
-			System.out.println("Total rows: " + filteredModel.getTotalRows());
 			activeModel = filteredModel;
 		}
 		setBounds();
@@ -220,6 +215,7 @@ public class FileView {
 		treeModel = new TreeModel();
 		filteredModel = new FilteredTreeModel(treeModel, filteredModel.getFilter());
 		setBounds();
+		canvas.redraw();
 	}
 	
 	public Control getWidget() {
