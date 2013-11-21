@@ -1,5 +1,7 @@
 package view;
 
+import java.util.List;
+
 import model.FilteredTreeModel;
 import model.TreeItem;
 import model.TreeModel;
@@ -145,33 +147,35 @@ public class FileView {
 		});
 	}
 	
-	public void addLine(String line) {
-		if(line.matches("\\s*")) {
-			return;
-		}
-
-		// Increase width for horizontal scrolling if we get a long line.
-		GC gc = new GC(canvas);
-		int width = gc.stringExtent(line).x;
-		if(width > maxWidth) {
-			maxWidth = width;
-			setBounds();
-		}
-		gc.dispose();
-		
+	public void addLines(List<String> lines) {
 		final ScrollBar bar = canvas.getVerticalBar();
-		
 		final boolean atBottom = bar.getSelection() + canvas.getClientArea().height > activeModel.getTotalRows() * lineHeight - 20;
 		
-		if(line.matches("\\s.*") && treeModel.getTotalRows() > 0) {
-			treeModel.addChild(line);
-			filteredModel.addChild(line);
-		} else {
-			treeModel.add(line);
-			filteredModel.add(line);
+		for(String line:lines) {
+			if(line.matches("\\s*")) {
+				continue;
+			}
+	
+			// Increase width for horizontal scrolling if we get a long line.
+			GC gc = new GC(canvas);
+			int width = gc.stringExtent(line).x;
+			if(width > maxWidth) {
+				maxWidth = width;
+				setBounds();
+			}
+			gc.dispose();
+			
+			if(line.matches("\\s.*") && treeModel.getTotalRows() > 0) {
+				treeModel.addChild(line);
+				filteredModel.addChild(line);
+			} else {
+				treeModel.add(line);
+				filteredModel.add(line);
+			}
+			
+			setBounds();
+			
 		}
-		
-		setBounds();
 		
 		if(atBottom && tail) {
 			scrollToEnd();

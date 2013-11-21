@@ -1,14 +1,17 @@
 package view;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.apache.commons.io.FileUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
@@ -94,11 +97,8 @@ public class MainView {
 				final FileView fileView = fileViews.get(selected);
 				
 				if(fileView.isEmpty()) {
-					try(BufferedReader reader = new BufferedReader(new FileReader(selected))) {
-						String line;
-						while((line = reader.readLine()) != null) {
-							fileView.addLine(line);
-						}
+					try {
+						fileView.addLines(FileUtils.readLines(selected));
 					} catch(IOException e) {
 						log.error("Error reading file: " + selected, e);
 					}
@@ -246,19 +246,28 @@ public class MainView {
 	}
 	
 	private void tail(final FileView fileView, final File file) {
-		final Tailer tailer = new Tailer(file, new TailerListenerAdapter() {
-			public void handle(Exception e) {
-				log.error("Error tailing file: " + file, e);
-			}
+		class TailerListener extends TailerListenerAdapter {
+			private final Queue<String> queue = new ConcurrentLinkedQueue<String>();
 			
 			public void handle(final String line) {
+				queue.add(line);
+			}
+			
+			public void flushQueue() {
+				if(!queue.isEmpty()) {
+					handle(new ArrayList<String>(queue));
+					queue.clear();
+				}
+			}
+			
+			private void handle(final List<String> lines) {
 				Display.getDefault().asyncExec(new Runnable() {
 					public void run() {
 						CTabItem selectedTab = tabs.getSelection();
 						boolean selected = (selectedTab != null && selectedTab.getData() == file);
 						fileList.setModified(file, selected);
 						
-						fileView.addLine(line);
+						fileView.addLines(lines);
 					}
 				});
 			}
@@ -266,9 +275,19 @@ public class MainView {
 			public void fileRotated() {
 				fileView.clearLines();
 			}
-		}, 1000, true);
+		}
 		
-		Thread thread = new Thread(tailer);
+		final TailerListener tailer = new TailerListener();
+		
+		Timer timer = new Timer(true);
+		timer.scheduleAtFixedRate(new TimerTask() {
+			public void run() {
+				tailer.flushQueue();
+			}
+		}, 0, 100);
+		
+		
+		Thread thread = new Thread(new Tailer(file, tailer, 100, true));
 		thread.setDaemon(true);
 		thread.start();
 		
