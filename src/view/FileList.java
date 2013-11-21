@@ -155,10 +155,12 @@ public class FileList {
 	}
 	
 	public void refreshItems() {
+		table.setRedraw(false);
 		table.removeAll();
 		for(File file:files) {
 			addFileItem(file);
 		}
+		table.setRedraw(true);
 	}
 	
 	public void addFile(File file) {
