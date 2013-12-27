@@ -124,13 +124,12 @@ public class FileList {
 
 	private void notifyModified(TableItem tableItem, final File file) {
 		Timer timer = modifiedTimers.get(file);
-	
-		if(timer == null) {
-			timer = new Timer();
-		} else {
+		if(timer != null) {
 			timer.cancel();
 		}
+		timer = new Timer();
 		
+		modifiedTimers.put(file, timer);
 		tableItem.setFont(boldFont);
 		
 		final Display display = Display.getCurrent();
@@ -138,6 +137,7 @@ public class FileList {
 			public void run() {
 				display.asyncExec(new Runnable() {
 					public void run() {
+						modifiedTimers.remove(file);
 						recentlyModified.remove(file);
 						for(TableItem tableItem:table.getItems()) {
 							if(tableItem.getData().equals(file)) {
