@@ -177,7 +177,7 @@ public class MainView {
 		Label label = new Label(bar, SWT.NONE);
 		label.setText("Filter:");
 		
-		final Text text = new Text(bar, SWT.NONE);
+		final Text text = new Text(bar, SWT.BORDER);
 		text.setLayoutData(new GridData(GridData.FILL_BOTH));
 		
 		text.addSelectionListener(new SelectionAdapter() {

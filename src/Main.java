@@ -35,9 +35,9 @@ public class Main {
 		for(File file:files) {
 			mainView.addFile(file);
 		}
-		
+	
 		/*
-		for(File file:new File("/home/david/opt/tomcat/logs/").listFiles()) {
+		for(File file:new File("e:/Tomcat 7.0/logs/").listFiles()) {
 			mainView.addFile(file);
 		}
 		*/
