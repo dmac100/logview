@@ -187,9 +187,9 @@ public class FileList {
 				tableItem.setText(1, formatDate(file.lastModified()));
 				if(!selected) {
 					tableItem.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_RED));
-					modified.add(file);
-					notifyModified(tableItem, file);
 				}
+				modified.add(file);
+				notifyModified(tableItem, file);
 			}
 		}
 	}
@@ -203,7 +203,6 @@ public class FileList {
 		for(TableItem tableItem:table.getItems()) {
 			if(tableItem.getData().equals(file)) {
 				tableItem.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_BLACK));
-				tableItem.setFont(normalFont);
 			}
 		}
 		
