@@ -20,7 +20,7 @@ public class FileNotifications {
 		if(timer != null) {
 			timer.cancel();
 		}
-		timer = new Timer();
+		timer = new Timer(true);
 		
 		modifiedTimers.put(file, timer);
 		recentlyModified.add(file);
