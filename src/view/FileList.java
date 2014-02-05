@@ -115,7 +115,11 @@ public class FileList {
 		
 		fileNotifications.setCallback(new Callback<Void>() {
 			public void onCallback(Void t) {
-				refreshNotifications();
+				getWidget().getDisplay().asyncExec(new Runnable() {
+					public void run() {
+						refreshNotifications();
+					}
+				});
 			}
 		});
 	}

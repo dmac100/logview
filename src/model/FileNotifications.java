@@ -15,7 +15,7 @@ public class FileNotifications {
 	
 	private Callback<Void> callback;
 	
-	public void notifyModified(final File file) {
+	public synchronized void notifyModified(final File file) {
 		Timer timer = modifiedTimers.get(file);
 		if(timer != null) {
 			timer.cancel();
@@ -26,23 +26,22 @@ public class FileNotifications {
 		recentlyModified.add(file);
 		modified.add(file);
 		
-		final Display display = Display.getCurrent();
 		timer.schedule(new TimerTask() {
 			public void run() {
-				display.asyncExec(new Runnable() {
-					public void run() {
-						modifiedTimers.remove(file);
-						recentlyModified.remove(file);
-						callback.onCallback(null);
-					}
-				});
+				clearRecentlyModified(file);
 			}
 		}, 5000);
 		
 		fireCallback();
 	}
+	
+	private synchronized void clearRecentlyModified(File file) {
+		modifiedTimers.remove(file);
+		recentlyModified.remove(file);
+		callback.onCallback(null);
+	}
 
-	public void fileSelected(File file) {
+	public synchronized void fileSelected(File file) {
 		selected = file;
 		modified.remove(file);
 		recentlyModified.remove(file);
@@ -56,7 +55,7 @@ public class FileNotifications {
 		fireCallback();
 	}
 
-	public void clear() {
+	public synchronized void clear() {
 		modified.clear();
 		recentlyModified.clear();
 		
@@ -68,25 +67,25 @@ public class FileNotifications {
 		fireCallback();
 	}
 	
-	public boolean isSelected(File file) {
+	public synchronized boolean isSelected(File file) {
 		return selected == file;
 	}
 
-	public boolean isModified(File file) {
+	public synchronized boolean isModified(File file) {
 		return modified.contains(file);
 	}
 
-	public boolean isRecentlyModified(File file) {
+	public synchronized boolean isRecentlyModified(File file) {
 		return recentlyModified.contains(file);
 	}
 	
-	public void fireCallback() {
+	public synchronized void fireCallback() {
 		if(callback != null) {
 			callback.onCallback(null);
 		}
 	}
 
-	public void setCallback(Callback<Void> callback) {
+	public synchronized void setCallback(Callback<Void> callback) {
 		this.callback = callback;
 	}
 }
