@@ -12,6 +12,8 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import model.FileNotifications;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
@@ -33,13 +35,11 @@ public class FileList {
 	private Callback<File> fileSelectedCallback;
 	
 	private List<File> files = new ArrayList<File>();
-	private Set<File> modified = new HashSet<File>();
-	private Set<File> recentlyModified = new HashSet<File>();
+	
+	private FileNotifications fileNotifications = new FileNotifications();
 	
 	private Font normalFont;
 	private Font boldFont;
-	
-	private Map<File, Timer> modifiedTimers = new HashMap<File, Timer>();
 	
 	public FileList(Composite parent) {
 		table = new Table(parent, SWT.NONE);
@@ -112,6 +112,12 @@ public class FileList {
 				boldFont.dispose();
 			}
 		});
+		
+		fileNotifications.setCallback(new Callback<Void>() {
+			public void onCallback(Void t) {
+				refreshNotifications();
+			}
+		});
 	}
 	
 	private Font createBoldFont(Font font) {
@@ -120,34 +126,6 @@ public class FileList {
 			fontData.setStyle(SWT.BOLD);
 		}
 		return new Font(Display.getCurrent(), fontDatas);
-	}
-
-	private void notifyModified(TableItem tableItem, final File file) {
-		Timer timer = modifiedTimers.get(file);
-		if(timer != null) {
-			timer.cancel();
-		}
-		timer = new Timer();
-		
-		modifiedTimers.put(file, timer);
-		tableItem.setFont(boldFont);
-		
-		final Display display = Display.getCurrent();
-		timer.schedule(new TimerTask() {
-			public void run() {
-				display.asyncExec(new Runnable() {
-					public void run() {
-						modifiedTimers.remove(file);
-						recentlyModified.remove(file);
-						for(TableItem tableItem:table.getItems()) {
-							if(tableItem.getData().equals(file)) {
-								tableItem.setFont(normalFont);
-							}
-						}
-					}
-				});
-			}
-		}, 5000);
 	}
 
 	public void setFileSelectedCallback(Callback<File> callback) {
@@ -173,25 +151,16 @@ public class FileList {
 		tableItem.setData(file);
 		tableItem.setText(0, file.getName());
 		tableItem.setText(1, formatDate(file.lastModified()));
-		if(modified.contains(file)) {
-			tableItem.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_RED));
-		}
-		if(recentlyModified.contains(file)) {
-			tableItem.setFont(boldFont);
-		}
+		refreshNotifications();
 	}
 	
 	public void setModified(File file, boolean selected) {
 		for(TableItem tableItem:table.getItems()) {
 			if(tableItem.getData().equals(file)) {
 				tableItem.setText(1, formatDate(file.lastModified()));
-				if(!selected) {
-					tableItem.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_RED));
-				}
-				modified.add(file);
-				notifyModified(tableItem, file);
 			}
 		}
+		fileNotifications.notifyModified(file);
 	}
 	
 	private static String formatDate(long date) {
@@ -199,35 +168,28 @@ public class FileList {
 		return dateFormat.format(date);
 	}
 
-	public void clearModified(File file) {
-		for(TableItem tableItem:table.getItems()) {
-			if(tableItem.getData().equals(file)) {
-				tableItem.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_BLACK));
-			}
-		}
-		
-		modified.remove(file);
-		recentlyModified.remove(file);
-		
-		Timer timer = modifiedTimers.get(file);
-		if(timer != null) {
-			timer.cancel();
-			modifiedTimers.remove(file);
-		}
+	public void fileSelected(File file) {
+		fileNotifications.fileSelected(file);
 	}
 	
 	public void clear() {
 		table.removeAll();
-		modified.clear();
-		recentlyModified.clear();
 		files.clear();
-		
-		for(Timer timer:modifiedTimers.values()) {
-			timer.cancel();
-		}
-		modifiedTimers.clear();
+		fileNotifications.clear();
 	}
 
+	public void refreshNotifications() {
+		for(TableItem tableItem:table.getItems()) {
+			File file = (File)tableItem.getData();
+			
+			int color = (fileNotifications.isModified(file) && !fileNotifications.isSelected(file)) ? SWT.COLOR_RED : SWT.COLOR_BLACK;
+			Font font = fileNotifications.isRecentlyModified(file) ? boldFont : normalFont;
+			
+			tableItem.setForeground(Display.getCurrent().getSystemColor(color));
+			tableItem.setFont(font);
+		}
+	}
+	
 	public Control getWidget() {
 		return table;
 	}

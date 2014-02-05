@@ -54,7 +54,7 @@ public class MainView {
 		
 		fileList.setFileSelectedCallback(new Callback<File>() {
 			public void onCallback(File selected) {
-				fileList.clearModified(selected);
+				fileList.fileSelected(selected);
 				
 				for(CTabItem existing:tabs.getItems()) {
 					if(existing.getData().equals(selected)) {
@@ -94,7 +94,7 @@ public class MainView {
 		tabs.addSelectionListener(new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent event) {
 				File file = (File)event.item.getData();
-				fileList.clearModified(file);
+				fileList.fileSelected(file);
 			}
 		});
 		
