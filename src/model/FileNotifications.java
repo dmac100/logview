@@ -8,8 +8,9 @@ import org.eclipse.swt.widgets.Display;
 import view.Callback;
 
 public class FileNotifications {
-	private Set<File> modified = new HashSet<File>();
+	private Set<File> unread = new HashSet<File>();
 	private Set<File> recentlyModified = new HashSet<File>();
+	
 	private Map<File, Timer> modifiedTimers = new HashMap<File, Timer>();
 	private File selected;
 	
@@ -24,7 +25,9 @@ public class FileNotifications {
 		
 		modifiedTimers.put(file, timer);
 		recentlyModified.add(file);
-		modified.add(file);
+		if(file != selected) {
+			unread.add(file);
+		}
 		
 		timer.schedule(new TimerTask() {
 			public void run() {
@@ -43,20 +46,13 @@ public class FileNotifications {
 
 	public synchronized void fileSelected(File file) {
 		selected = file;
-		modified.remove(file);
-		recentlyModified.remove(file);
-		
-		Timer timer = modifiedTimers.get(file);
-		if(timer != null) {
-			timer.cancel();
-			modifiedTimers.remove(file);
-		}
+		unread.remove(file);
 		
 		fireCallback();
 	}
 
 	public synchronized void clear() {
-		modified.clear();
+		unread.clear();
 		recentlyModified.clear();
 		
 		for(Timer timer:modifiedTimers.values()) {
@@ -72,14 +68,14 @@ public class FileNotifications {
 	}
 
 	public synchronized boolean isModified(File file) {
-		return modified.contains(file);
+		return unread.contains(file);
 	}
 
 	public synchronized boolean isRecentlyModified(File file) {
 		return recentlyModified.contains(file);
 	}
 	
-	public synchronized void fireCallback() {
+	private synchronized void fireCallback() {
 		if(callback != null) {
 			callback.onCallback(null);
 		}
