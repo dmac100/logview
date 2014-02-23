@@ -188,9 +188,11 @@ public class FileList {
 			
 			int color = (fileNotifications.isModified(file) && !fileNotifications.isSelected(file)) ? SWT.COLOR_RED : SWT.COLOR_BLACK;
 			Font font = fileNotifications.isRecentlyModified(file) ? boldFont : normalFont;
-			
-			tableItem.setForeground(Display.getCurrent().getSystemColor(color));
-			tableItem.setFont(font);
+
+			for(int column = 0; column < 2; column++) {
+				tableItem.setForeground(column, Display.getCurrent().getSystemColor(color));
+				tableItem.setFont(column, font);
+			}
 		}
 	}
 	
